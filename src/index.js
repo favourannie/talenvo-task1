@@ -4,6 +4,10 @@ const { sequelize } = require("./config/database")
 
 const userRoutes = require("./routes/userRoutes")
 const boardRoutes = require("./routes/boardRoutes")
+const cardRoutes = require("./routes/cardRoutes")
+const columnRoutes = require("./routes/columnRoutes")
+const tagRoutes = require("./routes/tagRoutes")
+const commentRoutes = require("./routes/commentRoutes")
 
 
 dotenv.config()
@@ -23,6 +27,10 @@ app.get("/health", (req,res)=>{
 
 app.use("/api/v1", userRoutes)
 app.use("/api/v1", boardRoutes)
+app.use("/api/v1", cardRoutes)
+app.use("/api/v1", commentRoutes)
+app.use("/api/v1", columnRoutes)
+app.use("/api/v1", tagRoutes)
 app.use((req,res) => {
     res.status(404).json({
         success: false,
@@ -42,7 +50,7 @@ async function startServer() {
             console.log(`Server running on Port: ${PORT}`)
         })
     } catch (error) {
-        console.error("Failed to start server". error.message)
+        console.error("Failed to start server" + error.message)
         process.exit(1)
         
     }

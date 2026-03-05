@@ -24,11 +24,6 @@ const Column = sequelize.define(
             type: DataTypes.STRING(255),
             allowNull: false
         },
-        position: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            defaultValue: 0
-        },
         createdAt: {
             type: DataTypes.DATE,
             defaultValue: DataTypes.NOW
