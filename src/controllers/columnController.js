@@ -6,6 +6,7 @@ const User = require("../models/userModel")
 class columnController {
     async createColumn (req,res,next) {
         try {
+            const userId = req.userId
             const {boardId} = req.params
             const {title} = req.body
             const board = await Board.findByPk(boardId)
@@ -23,7 +24,7 @@ class columnController {
                 message: "Column created successfully",
                 data: column
             })
-        } catch {
+        } catch (error){
             res.status(500).json({
                 success: false,
                 message: "Error creating column" + error.message
@@ -40,7 +41,7 @@ class columnController {
             }
 
             const column = await Column.findByPk(columnId)
-            if (!column || column.boardId !== boardId) {
+            if (!column) {
                 return res.status(404).json({ success: false, message: "Column not found" })
             }
             const updatedColumn = await column.update(req.body)
@@ -50,7 +51,7 @@ class columnController {
                 message: "Column updated successfully",
                 data: updatedColumn
         })
-        } catch{
+        } catch{(error)
             res.status(500).json({
                 success: false,
                 message: "Error updating column" + error.message
@@ -75,7 +76,7 @@ class columnController {
                 success: true,
                 message: "Column deleted successfully"
             })
-        } catch{
+        } catch{(error)
             res.status(500).json({
                 success: false,
                 message: "Error deleting column" + error.message

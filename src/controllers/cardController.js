@@ -53,7 +53,7 @@ class cardController{
             }
 
             const column = await Column.findByPk(columnId)
-            if(!column || column.boardId !== boardId){
+            if(!column){
                 return res.status(404).json({
                     success: false,
                     message: "Column not found"
@@ -61,7 +61,7 @@ class cardController{
             }
 
             const card = await Card.findByPk(cardId)
-            if(!card || card.columnId !== columnId){
+            if(!card){
                 return res.status(404).json({
                     success: false,
                     message: "Card not found"
@@ -157,7 +157,7 @@ class cardController{
             message: "Tag added to card successfully",
             data: updated
         })
-        } catch{
+        } catch (error){
             res.status(500).json({
                 success: false,
                 message: "Error adding tag to card" + error.message
@@ -167,7 +167,7 @@ class cardController{
 
     async getCardsByColumn(req,res,next) { 
         try{
-             const {boardId, columnId, cardId} = req.params
+             const {boardId, columnId} = req.params
             const board = await Board.findByPk(boardId)
             if(!board || board.userId !== req.userId){
                 return res.status(404).json({
@@ -191,7 +191,7 @@ class cardController{
                     message: "Cards retrieved successfully",
                     data: card
                 })
-        } catch{
+        } catch (error){
             res.status(500).json({
                 success: false,
                 message: "Error getting cards by column" + error.message
@@ -232,7 +232,7 @@ class cardController{
                 message: "Due date set successfully",
                 data: updatedCard
             })
-        } catch{
+        } catch (error){
             res.status(500).json({
                 success: false, 
                 message: "Error setting due date" + error.message

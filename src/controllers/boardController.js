@@ -13,7 +13,8 @@ class boardController {
 
             res.status(201).json({
                 success: true, 
-                message: "Board created successfully"
+                message: "Board created successfully",
+                data: board
             })
         } catch (error) {
             res.status(500).json({

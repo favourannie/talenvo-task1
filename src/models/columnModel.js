@@ -39,10 +39,4 @@ const Column = sequelize.define(
     }
 )
 
-Column.belongsTo(Board, {
-    foreignKey: "boardId", as: "board"
-})
-Board.hasMany(Column, {
-    foreignKey: "boardId", as: "columns"
-})
 module.exports = Column

@@ -48,9 +48,4 @@ const Comment = sequelize.define(
     }
 )
 
-Comment.belongsTo(Card, { foreignKey: "cardId", as: "card" })
-Card.hasMany(Comment, { foreignKey: "cardId", as: "comments" })
-Comment.belongsTo(User, { foreignKey: "userId", as: "author" })
-User.hasMany(Comment, { foreignKey: "userId", as: "comments" })
-
 module.exports = Comment

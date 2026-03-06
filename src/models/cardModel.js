@@ -11,7 +11,7 @@ const Card = sequelize.define(
             defaultValue: DataTypes.UUIDV4,
         },
         columnId: {
-            type: DataTypes.STRING(128),
+            type: DataTypes.UUID,
             allowNull: false,
             references: {
                 model: Column,
@@ -46,16 +46,4 @@ const Card = sequelize.define(
     }
 )
 
-
-
-Card.belongsTo(Column, { foreignKey: "columnId", as: "column" })
-Column.hasMany(Card, { foreignKey: "columnId", as: "cards" })
-
-const Tag = require("./tagModel")
-Card.belongsToMany(Tag, {
-    through: "card_tags",
-    foreignKey: "cardId",
-    otherKey: "tagId",
-    as: "tags",
-})
 module.exports = Card 

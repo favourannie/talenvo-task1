@@ -12,10 +12,11 @@ const Tag = sequelize.define(
         name: {
             type: DataTypes.STRING(100),
             allowNull: false,
-            unique: true,
-            validate: {
-                isEmail: true
-            }
+            unique: true
+        },
+        color: {
+            type: DataTypes.STRING(7), // For hex color codes like #FF0000
+            allowNull: false
         },
         createdAt: {
             type: DataTypes.DATE,

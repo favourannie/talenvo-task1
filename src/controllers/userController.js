@@ -27,9 +27,13 @@ class authController {
                 success: true,
                 message: "User registered successfully",
                 data: {
-                    user,
-                    token
-                }
+                user: {
+               id: user.id,
+               email: user.email,
+               name: user.name
+    },
+    token
+}
             })
         } catch (error) {
             res.status(500).json({
@@ -67,7 +71,7 @@ class authController {
                 }
             })
         } catch (error) {
-            res.status(500),json({
+            res.status(500).json({
                 success: false,
                 message: "Error logging in" + error.message
             })

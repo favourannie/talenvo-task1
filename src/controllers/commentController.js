@@ -6,7 +6,7 @@ const Board = require("../models/boardModel.js")
 class commentController {
     async createComment(req,res,next){
         try {
-             const { boardId, columnId, cardId } = req.params
+             const { boardId, cardId } = req.params
             const { content } = req.validatedBody
             const userId = req.userId
 
@@ -15,13 +15,13 @@ class commentController {
                 return res.status(404).json({ success: false, message: "Board not found" })
             }
             const card = await Card.findByPk(cardId)
-            if(!cardId){
+            if(!card){
                 return res.status(404).json({
                     success: false,
                     message: "Card not found"
                 })
             }
-            const comment = await Comment.cretae({cardID, userID, content})
+            const comment = await Comment.create({cardId, userId, content})
             res.status(201).json({
                 success: true,
                 message: "Comment added to card successfully",
@@ -30,7 +30,7 @@ class commentController {
         } catch (error) {
             res.status(500).json({
                 success: false,
-                message: "Error adding comment to tag" + error.message
+                message: "Error adding comment to card" + error.message
             })
         }
     }

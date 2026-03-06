@@ -7,7 +7,7 @@ class tagController {
             const existingTag = await Tag.findOne({
                 where: {name}
             })
-            if(existing) {
+            if(existingTag) {
                 return res.status(409).json({
                     success: false,
                     message: "Tag already exists"
@@ -19,10 +19,10 @@ class tagController {
                 message: "Tag created successfully",
                 data: tag
             })
-        } catch{
+        } catch(error){
             res.status(500).json({
                 success: false,
-                message: "Error creating tag" + erro.message
+                message: "Error creating tag" + error.message
             })
         }
     }

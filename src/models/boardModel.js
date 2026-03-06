@@ -41,10 +41,4 @@ const Board = sequelize.define(
         timestamps: true
     }
 )
-Board.belongsTo(User, {
-    foreignKey: "userId", as: "owner" 
-})
-User.hasMany(Board, {
-    foreignKey: "userId", as: "boards"
-})
 module.exports = Board
