@@ -1,22 +1,21 @@
-const { Sequelize } = require("sequelize")
-const dotenv = require("dotenv")
-dotenv.config()
-
 const sequelize = new Sequelize(
-    process.env.DB_NAME || "talennvo_task1",
-    process.env.DB_USER || "root",
-    process.env.DB_PASSWORD || "Funglo_1212.",
+    process.env.DB_NAME,
+    process.env.DB_USER,
+    process.env.DB_PASSWORD,
     {
-        host: process.env.DB_HOST || "localhost",
-        dialect : "mysql",
+        host: process.env.DB_HOST,
+        dialect: "mysql",
         logging: false,
-        pool : {
+        dialectOptions: {
+            ssl: {
+                require: true,
+                rejectUnauthorized: false 
+            }
+        },        pool: {
             max: 5,
             min: 0,
             acquire: 30000,
             idle: 10000
         }
     }
-)
-
-module.exports = { sequelize }
+);
