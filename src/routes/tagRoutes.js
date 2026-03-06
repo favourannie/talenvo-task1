@@ -20,14 +20,10 @@ const router = express.Router()
  *             type: object
  *             required:
  *               - name
- *               - color
  *             properties:
  *               name:
  *                 type: string
  *                 description: Tag name
- *               color:
- *                 type: string
- *                 description: Tag color (hex code)
  *     responses:
  *       201:
  *         description: Tag created successfully

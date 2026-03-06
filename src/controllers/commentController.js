@@ -7,7 +7,7 @@ class commentController {
     async createComment(req,res,next){
         try {
              const { boardId, cardId } = req.params
-            const { content } = req.validatedBody
+            const { content } = req.body
             const userId = req.userId
 
             const board = await Board.findByPk(boardId)

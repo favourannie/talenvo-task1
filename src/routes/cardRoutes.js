@@ -298,8 +298,10 @@ router.post("/cards/:boardId/:columnId/:cardId/due-date", authMiddleware, valida
  * @swagger
  * /cards/{boardId}/{columnId}/{cardId}/tags:
  *   post:
- *     summary: Add tag to card
- *     tags: [Cards]
+ *     summary: Attach a tag to a card
+ *     description: Adds an existing tag to a specific card within a column and board.
+ *     tags:
+ *       - Cards
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -308,16 +310,19 @@ router.post("/cards/:boardId/:columnId/:cardId/due-date", authMiddleware, valida
  *         required: true
  *         schema:
  *           type: string
+ *         description: ID of the board
  *       - in: path
  *         name: columnId
  *         required: true
  *         schema:
  *           type: string
+ *         description: ID of the column
  *       - in: path
  *         name: cardId
  *         required: true
  *         schema:
  *           type: string
+ *         description: ID of the card
  *     requestBody:
  *       required: true
  *       content:
@@ -327,22 +332,17 @@ router.post("/cards/:boardId/:columnId/:cardId/due-date", authMiddleware, valida
  *             properties:
  *               tagId:
  *                 type: string
- *                 example: "tag123"
+ *                 example: "b8f6b7b3-3d23-4a72-9e3a-7c1d65f6e9a1"
  *     responses:
  *       200:
- *         description: Tag added to card successfully
+ *         description: Tag successfully attached to the card
  *         content:
  *           application/json:
  *             example:
  *               success: true
- *               message: Tag added to card successfully
- *               data:
- *                 id: "card123"
- *                 tags:
- *                   - id: "tag123"
- *                     name: "Urgent"
+ *               message: Tag attached to card successfully
  *       404:
- *         description: Board or card not found
+ *         description: Board, Column, Card or Tag not found
  *       500:
  *         description: Server error
  */
