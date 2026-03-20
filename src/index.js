@@ -3,6 +3,9 @@ const dotenv = require("dotenv")
 const { sequelize } = require("./config/database")
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+const http = require("http")
+const { Server } = require("socket.io")
+const morgan = require("morgan")
 
 const userRoutes = require("./routes/userRoutes")
 const boardRoutes = require("./routes/boardRoutes")
@@ -12,6 +15,7 @@ const tagRoutes = require("./routes/tagRoutes")
 const commentRoutes = require("./routes/commentRoutes")
 
 const {globalErrorHandler} = require("./utils/errorHandler")
+
 dotenv.config()
 
 require("./models/associations")
@@ -59,6 +63,7 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 app.use(express.json())
 app.use(express.urlencoded({extended: true}))
+app.use(morgan("dev"))
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -82,22 +87,35 @@ app.use((req,res) => {
         message: "Route not found"
     })
 })
+
 app.use(globalErrorHandler)
 
 async function startServer() {
     try {
         await sequelize.authenticate()
         console.log("Database connected successfully")
+
         await sequelize.sync()
         console.log("Database synced successfully")
 
-        app.listen(PORT, ()=>{
+        // 🔥 SOCKET.IO SETUP
+        const server = http.createServer(app)
+
+        const io = new Server(server, {
+          cors: {
+            origin: "*"
+          }
+        })
+
+        app.set("io", io)
+
+        server.listen(PORT, ()=>{
             console.log(`Server running on Port: ${PORT}`)
         })
+
     } catch (error) {
-        console.error("Failed to start server" + error.message)
+        console.error("Failed to start server " + error.message)
         process.exit(1)
-        
     }
 }
 

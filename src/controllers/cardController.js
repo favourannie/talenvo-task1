@@ -1,286 +1,356 @@
-const Card = require("../models/cardModel")
-const Column = require("../models/columnModel")
-const Board = require("../models/boardModel")
-const Tag = require("../models/tagModel")
-const Comment = require("../models/commentModel")
-const User = require("../models/userModel")
+const Card = require("../models/cardModel");
+const Column = require("../models/columnModel");
+const Board = require("../models/boardModel");
+const Tag = require("../models/tagModel");
+const Comment = require("../models/commentModel");
+const User = require("../models/userModel");
+const { sequelize } = require("../config/database");
+const { emitCardCreated, emitCardMoved } = require("../utils/socketEvents");
 
-class cardController{
-    async createCard (req,res,next){
-        try {
-            const {boardId, columnId} = req.params
-            const {title, description, dueDate} = req.body
-            const board = await Board.findByPk(boardId)
-            if(!board || board.userId !== req.userId){
-                return res.status(404).json({
-                    success: false,
-                    message: "Board not found"
-                })
-            }
-
-            const column = await Column.findByPk(columnId)
-            if(!column || column.boardId !== boardId){
-                return res.status(404).json({
-                    success: false,
-                    message: "Column not found"
-                })
-            }
-            const card = await Card.create({
-                columnId, title, description, dueDate
-            })
-            res.status(201).json({
-                success: true,
-                message: "Card created successfully",
-                data: card
-            })
-        } catch (error) {
-          res.status(500).json({
-            success: false,
-            message: "Error creating card" + error.message
-          })  
-        }
-    }
-
-    async updateCard (req,res,next){
+class cardController {
+  async createCard(req, res, next) {
     try {
-        const {boardId, columnId, cardId} = req.params
+      const { boardId, columnId } = req.params;
+      const { title, description, dueDate } = req.body;
+      const board = await Board.findByPk(boardId);
+      if (!board || board.userId !== req.userId) {
+        return res.status(404).json({
+          success: false,
+          message: "Board not found",
+        });
+      }
 
-        const board = await Board.findByPk(boardId)
-
-        if(!board || board.userId !== req.userId){
-            return res.status(404).json({
-                success: false,
-                message: "Board not found"
-            })
-        }
-
-        const column = await Column.findOne({
-            where: {
-                id: columnId,
-                boardId: boardId
-            }
-        })
-
-        if(!column){
-            return res.status(404).json({
-                success: false,
-                message: "Column not found"
-            })
-        }
-
-        const card = await Card.findOne({
-            where: {
-                id: cardId,
-                columnId: columnId
-            }
-        })
-
-        if(!card){
-            return res.status(404).json({
-                success: false,
-                message: "Card not found"
-            })
-        }
-
-        const updatedCard = await card.update(req.body)
-
-        res.status(200).json({
-            success: true,
-            message: "Card updated successfully",
-            data: updatedCard
-        })
-
+      const column = await Column.findByPk(columnId);
+      if (!column || column.boardId !== boardId) {
+        return res.status(404).json({
+          success: false,
+          message: "Column not found",
+        });
+      }
+      const lastCard = await Card.findOne({
+        where: { columnId },
+        order: [["position", "DESC"]],
+      });
+      const position = lastCard ? lastCard.position + 1 : 1;
+      const card = await Card.create({
+        columnId,
+        title,
+        description,
+        dueDate,
+        position,
+      });
+      emitCardCreated(req.app.get("io"), card);
+      res.status(201).json({
+        success: true,
+        message: "Card created successfully",
+        data: card,
+      });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Error updating card: " + error.message
-        })
+      res.status(500).json({
+        success: false,
+        message: "Error creating card" + error.message,
+      });
     }
-}
+  }
 
-    async deleteCard(req,res,next){
-        try{
-             const {boardId, columnId, cardId} = req.params
-            const board = await Board.findByPk(boardId)
-            if(!board || board.userId !== req.userId){
-                return res.status(404).json({
-                    success: false,
-                    message: "Board not found"
-                })
-            }
-
-            const column = await Column.findByPk(columnId)
-            if(!column || column.boardId !== boardId){
-                return res.status(404).json({
-                    success: false,
-                    message: "Column not found"
-                })
-            }
-
-            const card = await Card.findByPk(cardId)
-            if(!card || card.columnId !== columnId){
-                return res.status(404).json({
-                    success: false,
-                    message: "Card not found"
-                })
-            }
-            await card.destroy()
-            res.status(200).json({
-                success: true,
-                message: "Card deleted successfully"
-            })
-        } catch (error) {
-            res.status(500).json({
-                success: false,
-                message: "Error deleting card" + error.message
-            })
-        }
-    }
-
- async addTag(req, res, next) {
+  async updateCard(req, res, next) {
     try {
-        const { boardId, columnId, cardId } = req.params
-        const { tagId } = req.body
+      const { boardId, columnId, cardId } = req.params;
 
-        const board = await Board.findByPk(boardId)
-        if (!board || board.userId !== req.userId) {
-            return res.status(404).json({
-                success: false,
-                message: "Board not found"
-            })
-        }
+      const { updatedAt, ...updates } = req.body;
 
-        const column = await Column.findByPk(columnId)
-        if (!column || column.boardId !== boardId) {
-            return res.status(404).json({
-                success: false,
-                message: "Column not found"
-            })
-        }
+      const board = await Board.findByPk(boardId);
 
-        const card = await Card.findByPk(cardId)
-        if (!card || card.columnId !== columnId) {
-            return res.status(404).json({
-                success: false,
-                message: "Card not found"
-            })
-        }
+      if (!board || board.userId !== req.userId) {
+        return res.status(404).json({
+          success: false,
+          message: "Board not found",
+        });
+      }
 
-        const tag = await Tag.findByPk(tagId)
-        if (!tag) {
-            return res.status(404).json({
-                success: false,
-                message: "Tag not found"
-            })
-        }
+      const column = await Column.findOne({
+        where: {
+          id: columnId,
+          boardId: boardId,
+        },
+      });
 
-        await card.addTag(tag)
+      if (!column) {
+        return res.status(404).json({
+          success: false,
+          message: "Column not found",
+        });
+      }
 
-        res.status(200).json({
-            success: true,
-            message: "Tag attached to card successfully"
-        })
+      const card = await Card.findOne({
+        where: {
+          id: cardId,
+          columnId: columnId,
+        },
+      });
 
+      if (!card) {
+        return res.status(404).json({
+          success: false,
+          message: "Card not found",
+        });
+      }
+
+      if (
+        updatedAt &&
+        new Date(updatedAt).getTime() !== new Date(card.updatedAt).getTime()
+      ) {
+        return res.status(409).json({
+          success: false,
+          message: "Conflict detected. Card already updated.",
+        });
+      }
+
+      const updatedCard = await card.update(updates);
+
+      res.status(200).json({
+        success: true,
+        message: "Card updated successfully",
+        data: updatedCard,
+      });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Error adding tag to card " + error.message
-        })
+      res.status(500).json({
+        success: false,
+        message: "Error updating card: " + error.message,
+      });
     }
+  }
+  async moveCard(req, res) {
+    const transaction = await sequelize.transaction();
+
+    try {
+      const { boardId, cardId } = req.params;
+      const { newColumnId, newPosition } = req.body;
+
+      const card = await Card.findByPk(cardId, { transaction });
+      const findColumn = await Column.findByPk(newColumnId, { transaction });
+      if(!findColumn){
+        return res.status(404).json({
+          success: false,
+          message: "Column not found",
+        });
+      }
+      const oldColumnId = card.columnId;
+
+      await Card.increment("position", {
+        by: 1,
+        where: {
+          columnId: newColumnId,
+          position: newPosition ,
+        },
+        transaction,
+      });
+
+      await Card.decrement("position", {
+        by: 1,
+        where: {
+          columnId: oldColumnId,
+          position: card.position ,
+        },
+        transaction,
+      });
+
+      await card.update(
+        { columnId: newColumnId, position: newPosition },
+        { transaction },
+      );
+
+      await transaction.commit();
+
+emitCardMoved(req.app.get("io"), card);
+      res.json({ success: true, data: card });
+    } catch (error) {
+      await transaction.rollback();
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async deleteCard(req, res, next) {
+    try {
+      const { boardId, columnId, cardId } = req.params;
+      const board = await Board.findByPk(boardId);
+      if (!board || board.userId !== req.userId) {
+        return res.status(404).json({
+          success: false,
+          message: "Board not found",
+        });
+      }
+
+      const column = await Column.findByPk(columnId);
+      if (!column || column.boardId !== boardId) {
+        return res.status(404).json({
+          success: false,
+          message: "Column not found",
+        });
+      }
+
+      const card = await Card.findByPk(cardId);
+      if (!card || card.columnId !== columnId) {
+        return res.status(404).json({
+          success: false,
+          message: "Card not found",
+        });
+      }
+      await card.destroy();
+      res.status(200).json({
+        success: true,
+        message: "Card deleted successfully",
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Error deleting card" + error.message,
+      });
+    }
+  }
+
+  async addTag(req, res, next) {
+    try {
+      const { boardId, columnId, cardId } = req.params;
+      const { tagId } = req.body;
+
+      const board = await Board.findByPk(boardId);
+      if (!board || board.userId !== req.userId) {
+        return res.status(404).json({
+          success: false,
+          message: "Board not found",
+        });
+      }
+
+      const column = await Column.findByPk(columnId);
+      if (!column || column.boardId !== boardId) {
+        return res.status(404).json({
+          success: false,
+          message: "Column not found",
+        });
+      }
+
+      const card = await Card.findByPk(cardId);
+      if (!card || card.columnId !== columnId) {
+        return res.status(404).json({
+          success: false,
+          message: "Card not found",
+        });
+      }
+
+      const tag = await Tag.findByPk(tagId);
+      if (!tag) {
+        return res.status(404).json({
+          success: false,
+          message: "Tag not found",
+        });
+      }
+
+      await card.addTag(tag);
+
+      res.status(200).json({
+        success: true,
+        message: "Tag attached to card successfully",
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Error adding tag to card " + error.message,
+      });
+    }
+  }
+
+ async getCardsByColumn(req, res) {
+  try {
+    const { boardId, columnId } = req.params;
+
+    const { page = 1, limit = 10 } = req.query;
+
+    const board = await Board.findByPk(boardId);
+    if (!board || board.userId !== req.userId) {
+      return res.status(404).json({
+        success: false,
+        message: "Board not found",
+      });
+    }
+
+    const column = await Column.findByPk(columnId);
+    if (!column || column.boardId !== boardId) {
+      return res.status(404).json({
+        success: false,
+        message: "Column not found",
+      });
+    }
+
+    const cards = await Card.findAll({
+      where: { columnId },
+      limit: parseInt(limit),
+      offset: (page - 1) * limit,
+      order: [["position", "ASC"]],
+      include: [
+        {
+          model: Tag,
+          as: "tags",
+          through: { attributes: [] },
+        },
+      ],
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Cards retrieved successfully",
+      page: Number(page),
+      limit: Number(limit),
+      data: cards,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error getting cards " + error.message,
+    });
+  }
 }
 
-    async getCardsByColumn(req,res,next) { 
-    try{
-        const {boardId, columnId} = req.params
+  async setDueDate(req, res, next) {
+    try {
+      const { dueDate } = req.body;
+      const { boardId, columnId, cardId } = req.params;
+      const board = await Board.findByPk(boardId);
+      if (!board || board.userId !== req.userId) {
+        return res.status(404).json({
+          success: false,
+          message: "Board not found",
+        });
+      }
 
-        const board = await Board.findByPk(boardId)
+      const column = await Column.findByPk(columnId);
+      if (!column || column.boardId !== boardId) {
+        return res.status(404).json({
+          success: false,
+          message: "Column not found",
+        });
+      }
 
-        if(!board || board.userId !== req.userId){
-            return res.status(404).json({
-                success: false,
-                message: "Board not found"
-            })
-        }
-
-        const column = await Column.findOne({
-            where: {
-                id: columnId,
-                boardId: boardId
-            }
-        })
-
-        if(!column){
-            return res.status(404).json({
-                success: false,
-                message: "Column not found"
-            })
-        }
-
-        const cards = await Card.findAll({
-            where: { columnId },
-            include: [
-                { 
-                    model: Tag,
-                    as: "tags",
-                    through: { attributes: [] }
-                }
-            ]
-        })
-
-        res.status(200).json({
-            success: true, 
-            message: "Cards retrieved successfully",
-            data: cards
-        })
-
-    } catch (error){
-        res.status(500).json({
-            success: false,
-            message: "Error getting cards by column: " + error.message
-        })
+      const card = await Card.findByPk(cardId);
+      if (!card || card.columnId !== columnId) {
+        return res.status(404).json({
+          success: false,
+          message: "Card not found",
+        });
+      }
+      const updatedCard = await card.update({ dueDate });
+      res.status(200).json({
+        success: true,
+        message: "Due date set successfully",
+        data: updatedCard,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Error setting due date" + error.message,
+      });
     }
-}
-    
-    async setDueDate (req,res,next){
-        try{
-            const {dueDate} = req.body
-             const {boardId, columnId, cardId} = req.params
-            const board = await Board.findByPk(boardId)
-            if(!board || board.userId !== req.userId){
-                return res.status(404).json({
-                    success: false,
-                    message: "Board not found"
-                })
-            }
-
-            const column = await Column.findByPk(columnId)
-            if(!column || column.boardId !== boardId){
-                return res.status(404).json({
-                    success: false,
-                    message: "Column not found"
-                })
-            }
-
-            const card = await Card.findByPk(cardId)
-            if(!card || card.columnId !== columnId){
-                return res.status(404).json({
-                    success: false,
-                    message: "Card not found"
-                })
-            }
-            const updatedCard = await card.update({ dueDate })
-            res.status(200).json({
-                success: true,
-                message: "Due date set successfully",
-                data: updatedCard
-            })
-        } catch (error){
-            res.status(500).json({
-                success: false, 
-                message: "Error setting due date" + error.message
-            })
-        }
-    }
+  }
 }
 
-module.exports = new cardController
+module.exports = new cardController();

@@ -1,5 +1,5 @@
 const express = require("express")
-const {createCard, updateCard, setDueDate, addTag, getCardsByColumn, deleteCard } = require("../controllers/cardController")
+const {createCard, updateCard, moveCard, setDueDate, addTag, getCardsByColumn, deleteCard } = require("../controllers/cardController")
 const {validate, createCardSchema, updateCardSchema, setDueDateSchema} = require("../validation/validation")
 const authMiddleware = require("../middleware/authMiddleware")
 const router = express.Router()
@@ -387,5 +387,126 @@ router.post("/cards/:boardId/:columnId/:cardId/tags", authMiddleware, addTag)
  *         description: Server error
  */
 router.delete("/cards/:boardId/:columnId/:cardId", authMiddleware, deleteCard)
+
+/**
+ * @swagger
+ * /cards/move/{boardId}/{columnId}/{cardId}:
+ *   put:
+ *     summary: Move a card across columns or reorder within a column
+ *     description: |
+ *       Moves a card to a new column and/or position.
+ *
+ *       This operation:
+ *       - Reorders cards in the destination column (shifts positions forward)
+ *       - Reorders cards in the source column (closes position gaps)
+ *       - Uses a database transaction to ensure consistency
+ *
+ *       ⚠️ Prevents duplicate positions and maintains ordering integrity.
+ *
+ *     tags: [Cards]
+ *
+ *     security:
+ *       - bearerAuth: []
+ *
+ *     parameters:
+ *       - in: path
+ *         name: boardId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID of the board
+ *
+ *       - in: path
+ *         name: columnId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Current column ID of the card
+ *
+ *       - in: path
+ *         name: cardId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID of the card to move
+ *
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - newColumnId
+ *               - newPosition
+ *             properties:
+ *               newColumnId:
+ *                 type: string
+ *                 format: uuid
+ *                 example: "c3b1c5a7-3f44-4df0-a45f-7c42e7d2a122"
+ *                 description: Destination column ID
+ *
+ *               newPosition:
+ *                 type: integer
+ *                 example: 1
+ *                 description: New position index in the destination column
+ *
+ *     responses:
+ *       200:
+ *         description: Card moved successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 id: "9b21c7c4-bc5e-4f56-9e4b-45bce1e23d11"
+ *                 columnId: "c3b1c5a7-3f44-4df0-a45f-7c42e7d2a122"
+ *                 position: 1
+ *                 title: "Finish backend API"
+ *                 updatedAt: "2026-03-19T12:00:00.000Z"
+ *
+ *       400:
+ *         description: Invalid input or position
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               message: Invalid position value
+ *
+ *       404:
+ *         description: Card or board not found
+ *         content:
+ *           application/json:
+ *             examples:
+ *               cardNotFound:
+ *                 value:
+ *                   success: false
+ *                   message: Card not found
+ *
+ *               boardNotFound:
+ *                 value:
+ *                   success: false
+ *                   message: Board not found
+ *
+ *       409:
+ *         description: Conflict during concurrent updates
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               message: Conflict detected while moving card
+ *
+ *       500:
+ *         description: Server error (transaction failed)
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               message: Error moving card
+ */
+router.put("/cards/move/:boardId/:columnId/:cardId", authMiddleware, moveCard)
 
 module.exports = router

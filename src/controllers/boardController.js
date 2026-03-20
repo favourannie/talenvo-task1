@@ -24,30 +24,32 @@ class boardController {
         }
     }
 
-    async getUserBoards (req,res){
-        try {
-            const userId = req.userId
-            const boards = await Board.findAll({
-                where : {userId},
-                include: [
-                    {model : User, as: "owner",
-                        attributes: ["id", "email", "name"]
-                    }
-                ]
-            })
+    async getUserBoards(req, res) {
+  try {
+    const userId = req.userId;
 
-            res.status(200).json({
-                success: true, 
-                message: "Boards retrieved successfully",
-                data: boards
-            })
-        } catch (error) {
-            res.status(500).json({
-                success: false,
-                message: "Error getting user boards" + error.message
-            })
-        }
-    }
+    const { page = 1, limit = 10 } = req.query;
+
+    const boards = await Board.findAll({
+      where: { userId },
+      limit: parseInt(limit),
+      offset: (page - 1) * limit,
+      order: [["createdAt", "DESC"]],
+    });
+
+    res.status(200).json({
+      success: true,
+      page: Number(page),
+      limit: Number(limit),
+      data: boards,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching boards " + error.message,
+    });
+  }
+}
 
     async getBoardById(req,res) {
         try {

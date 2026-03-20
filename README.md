@@ -66,132 +66,93 @@ The application follows a **layered architecture** which separates concerns and 
 - Manages database configuration.
 
 **Utils Layer**
-- Contains reusable utilities such as the global error handler.
+- Contains reusable utilities such as the global error handler and socket event emitters.
 
 This separation allows each layer to focus on a specific responsibility which makes the codebase scalable and easier to maintain.
 
 ---
 
-# Folder Structure
-│
-├── config/
-│ └── database.js
-│
-├── controllers/
-│ └── (business logic)
-│
-├── models/
-│ ├── user.js
-│ ├── board.js
-│ ├── column.js
-│ ├── card.js
-│ ├── tag.js
-│ ├── comment.js
-│ └── associations.js
-│
-├── routes/
-│ ├── userRoutes.js
-│ ├── boardRoutes.js
-│ ├── columnRoutes.js
-│ ├── cardRoutes.js
-│ ├── tagRoutes.js
-│ └── commentRoutes.js
-│
-├── utils/
-│ └── errorHandler.js
-│
-└── index.js
+# Architecture Evolution (Stage 2)
 
-### Reasoning Behind the Structure
-
-- **Modularity:** Each feature is separated into its own route and model.
-- **Scalability:** Makes it easier to add more modules in the future.
-- **Maintainability:** Code is easier to debug and update.
+As the system evolved, additional mechanisms were introduced to support collaboration, data consistency, and real-time updates.
 
 ---
 
-# Key Engineering Decisions
+## 1. Conflict Handling (Optimistic Concurrency Control)
 
-### 1. Sequelize ORM
+To support multiple users interacting with the same data, the system implements **optimistic concurrency control** using the `updatedAt` field.
 
-I chose **Sequelize** because it simplifies interaction with MySQL while still allowing flexibility with SQL queries.
+### Strategy:
+- Each update request includes the `updatedAt` timestamp.
+- Before updating, the system compares:
+  - Client timestamp vs Database timestamp
+- If they do not match:
+  - The request is rejected with a **409 Conflict error**
 
-Benefits:
-- Model-based structure
-- Built-in relationships
-- Easier migrations and schema syncing
+### Why this works:
+- Prevents overwriting another user's changes
+- Lightweight compared to locking mechanisms
+- Ideal for collaborative systems
 
----
-
-### 2. Relationship Management
-
-Relationships between models were defined using Sequelize associations.
-
-Examples:
-
-**User → Board**
-
-A user can own multiple boards.
-
-**Board → Column**
-
-A board can contain multiple columns.
-
-**Column → Card**
-
-Each column can contain multiple cards.
-
-**Card → Comment**
-
-Cards can have multiple comments.
-
-**Card → Tag (Many-to-Many)**
-
-Cards can have multiple tags and tags can belong to multiple cards.
-
-This was implemented using a **junction table**.
+### Example:
+Two users editing the same card:
+- User A updates → success
+- User B updates (with stale timestamp) → rejected
 
 ---
 
-### 3. Global Error Handling
+## 2. Card Ordering Strategy
 
-A centralized error handler was implemented to ensure consistent API responses and simplify debugging.
+The system maintains card order within columns using a **position-based indexing system**.
 
-Example error response:
+### Key Principles:
+- Each card has a `position` field
+- Positions are unique within a column
+- Ordering is maintained using database transactions
 
----
+### Move Operation Strategy:
+When a card is moved:
 
-### 4. API Documentation
+1. **Destination Column Adjustment**
+   - All cards with position ≥ new position are incremented
 
-Swagger was integrated using:
+2. **Source Column Adjustment**
+   - All cards with position > old position are decremented
 
-- swagger-jsdoc
-- swagger-ui-express
+3. **Card Update**
+   - Card is assigned new column and position
 
-This allows developers to explore and test the API easily.
+4. **Transaction Safety**
+   - All operations are wrapped in a database transaction
+   - Prevents partial updates and data corruption
 
----
-
-# Running the Project Locally
-
-### Clone Repository
-
-### Install Dependencies
-
-### Run Server
-
-Server will run on:
-http://localhost:1976
-
-Production:
-https://talenvo-task1.onrender.com/api-docs
+### Benefits:
+- Prevents duplicate positions
+- Maintains consistent ordering
+- Handles concurrent updates safely
 
 ---
 
-# Author
+## 3. Real-Time Updates (Socket.io)
 
-Favour Johnson  
-Backend Developer
+To enable live collaboration, the system integrates **WebSocket communication using Socket.io**.
 
-GitHub:  
-https://github.com/favourannie
+### Events Implemented:
+- `cardCreated`
+- `cardMoved`
+- `commentAdded`
+
+### Architecture:
+- HTTP handles data changes
+- Socket.io broadcasts events after successful operations
+
+### Flow:
+1. Client sends HTTP request (e.g., create comment)
+2. Server processes request
+3. Server emits event via Socket.io
+4. Connected clients receive updates instantly
+
+### Example:
+```js
+emitCommentAdded(io, comment);
+
