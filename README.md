@@ -1,7 +1,7 @@
 # Task Management API
 
 A RESTful API for managing boards, columns, cards, tags, and comments.  
-This project was built as part of my Talenvo Backend Internship Task to demonstrate backend engineering skills including database design, REST API architecture, and relationship management using Node.js and MySQL.
+Built as part of the Talenvo Backend Internship Task to demonstrate backend engineering skills including system design, real-time communication, and data consistency handling.
 
 ---
 
@@ -17,12 +17,56 @@ https://talenvo-task1.onrender.com/api-docs
 
 ---
 
-# Database Schema Diagram
+# Features Implemented
 
-The system is designed using a **relational database structure** where different entities interact through well-defined relationships.
+## Core Features
+- User authentication (JWT)
+- Board and column management
+- Card creation, update, deletion
+- Tagging system
+- Due dates for cards
 
-### Main Entities
+## Advanced Features (Stage 2)
 
+### Real-Time Updates
+- Implemented using **Socket.io**
+- Events:
+  - `cardCreated`
+  - `cardMoved`
+  - `commentAdded`
+
+### Comment System
+- Comments on cards
+- Threaded replies (2-level nesting supported)
+- Edit comment
+- Delete comment
+
+### Card Reordering
+- Move cards within and across columns
+- Maintains position integrity
+- Uses transactions to prevent corruption
+
+### Optimistic Updates
+- Conflict detection using `updatedAt`
+- Prevents overwriting changes from other users
+
+### Performance Improvements
+- Indexed frequently queried fields:
+  - `columnId`
+  - `position`
+- Pagination support for:
+  - Boards
+  - Cards
+- Reduced unnecessary queries using Sequelize includes
+
+### Logging
+- Request logging using **morgan**
+
+---
+
+# Database Schema
+
+### Entities
 - Users
 - Boards
 - Columns
@@ -33,126 +77,87 @@ The system is designed using a **relational database structure** where different
 ### Relationships
 
 | Relationship | Type |
-|---------------|------|
+|-------------|------|
 User → Boards | One-to-Many |
 Board → Columns | One-to-Many |
 Column → Cards | One-to-Many |
 Card → Comments | One-to-Many |
 Card → Tags | Many-to-Many |
 
-This design ensures efficient data organization and easy querying of related entities.
-
 ---
 
 # Architecture
 
-The application follows a **layered architecture** which separates concerns and improves maintainability.
+The application follows a **layered architecture**:
 
 ### Layers
 
-**Routes Layer**
-- Handles HTTP requests.
-- Maps endpoints to controller functions.
+**Routes**
+- Define API endpoints
 
-**Controller Layer**
-- Contains the business logic.
-- Processes requests and returns responses.
+**Controllers**
+- Handle business logic
 
-**Model Layer**
-- Defines database structure using Sequelize ORM.
-- Handles database interactions.
+**Models**
+- Define database schema (Sequelize)
 
-**Config Layer**
-- Manages database configuration.
+**Middleware**
+- Authentication
+- Validation
 
-**Utils Layer**
-- Contains reusable utilities such as the global error handler and socket event emitters.
-
-This separation allows each layer to focus on a specific responsibility which makes the codebase scalable and easier to maintain.
+**Utils**
+- Error handling
+- Socket event emitters
 
 ---
 
-# Architecture Evolution (Stage 2)
+# Folder Structure
 
-As the system evolved, additional mechanisms were introduced to support collaboration, data consistency, and real-time updates.
 
----
+├── config/
+├── controllers/
+├── models/
+├── routes/
+├── middleware/
+├── utils/
+├── tests/
+└── index.js
 
-## 1. Conflict Handling (Optimistic Concurrency Control)
-
-To support multiple users interacting with the same data, the system implements **optimistic concurrency control** using the `updatedAt` field.
-
-### Strategy:
-- Each update request includes the `updatedAt` timestamp.
-- Before updating, the system compares:
-  - Client timestamp vs Database timestamp
-- If they do not match:
-  - The request is rejected with a **409 Conflict error**
-
-### Why this works:
-- Prevents overwriting another user's changes
-- Lightweight compared to locking mechanisms
-- Ideal for collaborative systems
-
-### Example:
-Two users editing the same card:
-- User A updates → success
-- User B updates (with stale timestamp) → rejected
 
 ---
 
-## 2. Card Ordering Strategy
+# Tech Stack
 
-The system maintains card order within columns using a **position-based indexing system**.
-
-### Key Principles:
-- Each card has a `position` field
-- Positions are unique within a column
-- Ordering is maintained using database transactions
-
-### Move Operation Strategy:
-When a card is moved:
-
-1. **Destination Column Adjustment**
-   - All cards with position ≥ new position are incremented
-
-2. **Source Column Adjustment**
-   - All cards with position > old position are decremented
-
-3. **Card Update**
-   - Card is assigned new column and position
-
-4. **Transaction Safety**
-   - All operations are wrapped in a database transaction
-   - Prevents partial updates and data corruption
-
-### Benefits:
-- Prevents duplicate positions
-- Maintains consistent ordering
-- Handles concurrent updates safely
+- Node.js
+- Express.js
+- Sequelize ORM
+- MySQL (Aiven)
+- Socket.io
+- Swagger (API Docs)
 
 ---
 
-## 3. Real-Time Updates (Socket.io)
+# Running Locally
 
-To enable live collaboration, the system integrates **WebSocket communication using Socket.io**.
+### Install dependencies
 
-### Events Implemented:
-- `cardCreated`
-- `cardMoved`
-- `commentAdded`
+npm install
 
-### Architecture:
-- HTTP handles data changes
-- Socket.io broadcasts events after successful operations
 
-### Flow:
-1. Client sends HTTP request (e.g., create comment)
-2. Server processes request
-3. Server emits event via Socket.io
-4. Connected clients receive updates instantly
+### Start server
 
-### Example:
-```js
-emitCommentAdded(io, comment);
+npm run dev
 
+
+Server runs on:
+http://localhost:1976
+
+---
+
+# Author
+
+Favour Johnson  
+Backend Developer  
+
+GitHub:  
+https://github.com/favourannie
